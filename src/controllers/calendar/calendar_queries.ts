@@ -12,7 +12,7 @@ class CalendarQueries {
 
       if (result.rows.length === 0) {
        const update = await client.query('INSERT INTO calendar (arabic_date,english_date,hijreeMarabic_month_name) VALUES ($1, $2,$3) RETURNING *', [calendar.arabic_date, calendar.english_date, calendar.hijreeMarabic_month_name]);
-     console.log(update.rows);
+    
      return true;
       }
       const update = await client.query('update calendar set arabic_date = $1,english_date = $2,hijreeMarabic_month_name = $3', [calendar.arabic_date, calendar.english_date, calendar.hijreeMarabic_month_name]);
