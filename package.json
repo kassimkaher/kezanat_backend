@@ -4,28 +4,50 @@
   "description": "",
   "main": "server.ts",
   "scripts": {
-    "start": "clear \n node server.ts",
+    "migrate": " npx prisma migrate dev --name init  ",
+    "migrate_reset": "npx prisma migrate reset ",
     "build": "npx tsc",
-    "dev": "nodemon server.ts"
+    "dev": "nodemon server.ts",
+    "start": " npx nodemon server.ts "
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@prisma/client": "^5.17.0",
+    "@types/formidable": "^2.0.5",
+    "axios": "^1.7.3",
     "bcrypt": "^5.1.1",
+    "cheerio": "^1.0.0-rc.12",
+    "cookie-parser": "^1.4.6",
+    "date-and-time": "^3.4.1",
     "dotenv": "^16.4.5",
     "express": "^4.19.2",
+    "express-session": "^1.17.3",
+    "formidable": "^2.1.1",
+    "fs": "^0.0.1-security",
+    "iconv-lite": "^0.6.3",
+    "jsonwebtoken": "^9.0.0",
     "multer": "^1.4.5-lts.1",
+    "nodemailer": "^6.8.0",
+    "otp-generator": "^4.0.0",
     "pg": "^8.12.0",
     "reflect-metadata": "^0.2.2",
-    "typeorm": "^0.3.20"
+    "typeorm": "^0.3.20",
+    "uuid": "^9.0.0",
+    "validate-date": "^2.1.0"
   },
   "devDependencies": {
     "@types/bcrypt": "^5.0.2",
     "@types/express": "^4.17.21",
+    "@types/jsonwebtoken": "^9.0.0",
+    "@types/multer": "^1.4.7",
     "@types/node": "^20.14.12",
+    "@types/nodemailer": "^6.4.15",
+    "@types/otp-generator": "^4.0.0",
     "@types/pg": "^8.11.6",
     "nodemon": "^3.1.4",
+    "prisma": "^5.17.0",
     "ts-node": "^10.9.2",
     "typescript": "^5.5.4"
   }

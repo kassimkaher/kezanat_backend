@@ -1,0 +1,177 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+  previewFeatures = ["omitApi"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String       @id() @default(uuid())
+  name          String
+  email         String       @unique
+  phone         String       @unique
+  password      String
+  gander        String
+  onesignal_id  String?
+  role_id       UserRoles
+  verified      Boolean      @default(false)
+  code          String
+  verified_date DateTime
+  barthday      DateTime
+  token         Token[]
+  enable        Boolean      @default(false)
+
+  create_at      DateTime     @default(now())
+  update_at      DateTime     @updatedAt
+}
+model Token {
+  id      Int    @id @default(autoincrement())
+  user_id String
+  code    String @unique
+  user    User?  @relation(fields: [user_id], references: [id])
+
+  posts_id String?
+}
+
+
+
+
+
+model Calendar {
+  id            String       @id() @default(uuid())
+
+  hijreeMarabic_month_name          String
+  english_date DateTime
+  arabic_date      DateTime
+  
+
+  create_at      DateTime     @default(now())
+  update_at      DateTime     @updatedAt
+}
+model Ayah {
+  id      Int    @id @default(autoincrement())
+  sura_id      Int
+  text          String
+  number        Int      
+  sura          Sura @relation(fields: [sura_id], references: [id])
+  
+  page          Int
+  sajda         Sajda
+  is_book        Boolean
+  juzu          Int
+
+  create_at      DateTime     @default(now())
+  update_at      DateTime     @updatedAt
+}
+model Sura {
+  id      Int    @id @default(autoincrement())
+  
+   
+  sura_number   Int      @unique
+  sura_name     String    @unique
+  count          Int
+  create_at      DateTime     @default(now())
+  update_at      DateTime     @updatedAt
+
+
+  ahyat    Ayah[] 
+}
+
+enum UserRoles {
+  ADMIN
+  COMPANY
+  USER
+}
+
+enum Sajda {
+  NONE
+  OPTIONAL
+  REQUIRED
+}
+
+// model Category {
+//   id          Int          @id @default(autoincrement())
+//   name        String        @unique
+//   book_id      Int           
+//   parent_id    Int?         // Nullable to allow root categories
+//   parent      Category?    @relation("Subcategories", fields: [parent_id], references: [id])
+//   sub_categories Category[] @relation("Subcategories")
+//   book_item BookItems[]
+//   book          Books @relation(fields: [book_id], references: [id])
+ 
+//   type BookType
+// }
+// model Books {
+//   id      Int    @id @default(autoincrement())
+
+//   title          String @unique
+//   date_of_release  DateTime?
+//   author   Novelist[]
+//   book_items BookItems[]
+//   category Category[]
+  
+//   create_at      DateTime     @default(now())
+//   update_at      DateTime     @updatedAt
+// }
+model BookItems {
+  id      Int    @id @default(autoincrement())
+
+  book_item_id      Int?
+  book_name          String?
+  book_content          String?
+  index_name          String?
+  book_type BookType
+      
+
+  is_title        Boolean @default(false)
+  page          Int  @default(0)
+  juzu          Int  @default(-1)
+  noverlers   Noveler[] @relation(name: "BookItemsToNoveler")
+
+
+ parent   BookItems?   @relation("TeacherStudents", fields: [book_item_id], references: [id])
+ children  BookItems[]  @relation("TeacherStudents")
+  
+  create_at      DateTime     @default(now())
+  update_at      DateTime     @updatedAt
+}
+
+
+
+model Noveler {
+  id      Int    @id @unique
+  
+  name          String @unique
+      
+  book_item          BookItems[]@relation(name: "BookItemsToNoveler")
+ 
+  rate          Int  @default(0)
+  birth_day      DateTime?   
+  death_day      DateTime ?   
+
+
+  create_at      DateTime     @default(now())
+  update_at      DateTime     @updatedAt
+
+}
+
+
+enum BookType {
+  INDEX
+  BOOK
+  CONTENT
+  FOOTER
+
+
+  
+}
+
