@@ -128,6 +128,7 @@ model BookItems {
   book_item_id      Int?
   book_name          String?
   book_content          String?
+  book_footer          String?
   index_name          String?
   book_type BookType
       

@@ -96,7 +96,7 @@ class SahefaAlsajadeaService {
             if ($(font).attr('color') == "#336699") {
 
 
-                const result = await booksService.createBookItemContent($(font).text(), true,categoryId, page,-1,[]);
+                const result = await booksService.createBookItemContent($(font).text(),"", true,categoryId, page,-1,[]);
 
                 if (result) {
                     object.push(result)
@@ -106,7 +106,7 @@ class SahefaAlsajadeaService {
             } else if ($(font).text() != "") {
 
 
-                const result = await booksService.createBookItemContent($(font).text(),false, categoryId,page ,-1,[]);
+                const result = await booksService.createBookItemContent($(font).text(),"",false, categoryId,page ,-1,[]);
 
                 if (result) {
                     object.push(result)

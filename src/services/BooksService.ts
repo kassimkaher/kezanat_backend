@@ -30,23 +30,27 @@ class BooksService {
 
 
         seedService.createBook().then((res) => {
-           
+
             alKafeeBookId = res[0];
             adwaBookId = res[1];
             albalaghaBookId = res[2];
         });
 
 
-     
+
 
     }
     public getAlkafeePageUrl(page: number) {
         return alkafeeUrl.replace("49", page.toString());
 
     }
-     public getNahjAlbahlaghPageUrl(page: number) {
-       
-       return "http://shiaonlinelibrary.com/الكتب/1107_نهج-البلاغة-خطب-الإمام-علي-ع-ج-١/الصفحة_"+page+"";
+    public getNahjAlbahlaghUrls(page: number) {
+
+        return ["https://alseraj.net/nahj_al-balagha/الخطبة-" + this.toArabicDigits(page.toString()) + "/",
+        "https://alseraj.net/nahj_al-balagha/الكتاب-" + this.toArabicDigits(page.toString()) + "/",
+            "https://alseraj.net/حكم-نهج-البلاغة/"
+        ];
+
     }
 
 
@@ -66,11 +70,11 @@ class BooksService {
             return null;
         }
     }
-    public async createBookItemContent(text: string, isTitle: boolean, bookId: number, page: number, juzu: number, noverers: any[],type:BookType=BookType.CONTENT) {
+    public async createBookItemContent(text: string, footer: string, isTitle: boolean, bookId: number, page: number, juzu: number, noverers: any[], type: BookType = BookType.CONTENT, bookName: string = "") {
         try {
 
 
-            const insert = await prisma.bookItems.create({ data: {book_name:"", book_content: text, book_item_id: bookId, is_title: isTitle, page: page, juzu: juzu,book_type:BookType.CONTENT, } });
+            const insert = await prisma.bookItems.create({ data: { book_name: bookName, book_content: text, book_footer: footer, book_item_id: bookId, is_title: isTitle, page: page, juzu: juzu, book_type: BookType.CONTENT, } });
 
 
             const result = await prisma.bookItems.update({ where: { id: insert.id }, data: { noverlers: { connect: noverers } } });
@@ -83,13 +87,13 @@ class BooksService {
         }
 
     }
-    async createCategory(data: { book_item_id: number, index_name: string;  type: BookType }) {
+    async createCategory(data: { book_item_id: number, index_name: string; type: BookType }) {
         try {
-            const cat = await prisma.bookItems.findFirst({ where: { index_name: data.index_name ,book_item_id:data.book_item_id} });
+            const cat = await prisma.bookItems.findFirst({ where: { index_name: data.index_name, book_item_id: data.book_item_id } });
             if (cat) {
                 return cat;
             }
-            return await prisma.bookItems.create({ data: {book_item_id:data.book_item_id,index_name:data.index_name,book_type:data.type,book_name:""} });
+            return await prisma.bookItems.create({ data: { book_item_id: data.book_item_id, index_name: data.index_name, book_type: data.type, book_name: "" } });
         } catch (e) {
             console.log("createCategory==" + e);
         }
@@ -97,16 +101,16 @@ class BooksService {
     public async migrationAlkafee(req: any, response: any) {
 
         try {
-            const indexing = await this.getAlkafeeIndexing(this.getAlkafeePageUrl(48 + 1),1, alKafeeBookId);
+            const indexing = await this.getAlkafeeIndexing(this.getAlkafeePageUrl(48 + 1), 1, alKafeeBookId);
 
             for (let index = 0; index < indexing.length; index++) {
-               
-               if (index+1<indexing.length) {
-                await this.readAlkafeeContent(1, indexing[index].id!,indexing[index].number!,indexing[index+1].number);
-                continue;
-               }
-               await this.readAlkafeeContent(1, indexing[index].id!,indexing[index].number!,555);
-                
+
+                if (index + 1 < indexing.length) {
+                    await this.readAlkafeeContent(1, indexing[index].id!, indexing[index].number!, indexing[index + 1].number);
+                    continue;
+                }
+                await this.readAlkafeeContent(1, indexing[index].id!, indexing[index].number!, 555);
+
             }
             const data = await this.getDataOfBook(alKafeeBookId);
 
@@ -123,22 +127,23 @@ class BooksService {
 
     }
 
-    public async getAlkafeeIndexing(url:string,juzu: number, bookId: number) {
-     
+    public async getAlkafeeIndexing(url: string, juzu: number, bookId: number) {
+
         const { data } = await axios.get(url);
         const $ = cheerio.load(data);
         const categoryItms = $('div.toc').find('tr'); // Get all the contents of the div (text nodes + elements)
         let catArry = [];
 
-for (let index = 0; index < categoryItms.length; index++) {
-   
-    const title = $(categoryItms[index]).find('a').text();
-    const number = Number.parseInt($(categoryItms[index]).find('td').last().text());
-   const bookItem= await this.createCategory({book_item_id:bookId,index_name:title,type:BookType.INDEX});
-    catArry.push({ id: bookItem?.id,number:number });
-    
-}
-return catArry; }
+        for (let index = 0; index < categoryItms.length; index++) {
+
+            const title = $(categoryItms[index]).find('a').text();
+            const number = Number.parseInt($(categoryItms[index]).find('td').last().text());
+            const bookItem = await this.createCategory({ book_item_id: bookId, index_name: title, type: BookType.INDEX });
+            catArry.push({ id: bookItem?.id, number: number });
+
+        }
+        return catArry;
+    }
     public async readAlkafeeContent(juzu: number, bookId: number, startPage: number, endPage: number) {
         let novelistIds: any[] = [];
         let text = "";
@@ -154,10 +159,10 @@ return catArry; }
             const footer = $('div.footnote').text();
             for (const element in elements) {
                 if (elements[element].type === 'text') {
-                    
-                    if ($(elements[element]).text().slice(-1)=='.') {
+
+                    if ($(elements[element]).text().slice(-1) == '.') {
                         text += " " + $(elements[element]).text().trim();
-                        await this.createBookItemContent(text, false, bookId, page, juzu, novelistIds);
+                        await this.createBookItemContent(text, "", false, bookId, page, juzu, novelistIds);
                         novelistIds = [];
                         text = "";
                         continue;
@@ -168,7 +173,7 @@ return catArry; }
                 }
                 else if (elements[element].type === 'tag' && elements[element].tagName === 'span') {
                     // This is a span element
-                    text += " " +$(elements[element]).text().trim();
+                    text += " " + $(elements[element]).text().trim();
                     const id = instance.getId($, elements[element]);
 
                     const novelist = await this.createNoveler($(elements[element]).text().trim(), id);
@@ -180,10 +185,10 @@ return catArry; }
 
                 }
             }
-        //    if (footer.length > 0) {
-        //     await this.createBookItemContent(footer, false, bookId, page, juzu, [],BookType.FOOTER);
-           
-        //    }
+            //    if (footer.length > 0) {
+            //     await this.createBookItemContent(footer, false, bookId, page, juzu, [],BookType.FOOTER);
+
+            //    }
 
 
 
@@ -194,21 +199,31 @@ return catArry; }
 
 
         try {
-    
- const indexing = await this.getAlkafeeIndexing(this.getNahjAlbahlaghPageUrl(1),1, albalaghaBookId);
 
-            for (let index = 0; index < indexing.length; index++) {
-               
-               if (index+1<indexing.length) {
-                await this.readNahjAlbalaghaContent(1, indexing[index].id!,indexing[index].number!,indexing[index+1].number);
-                continue;
-               }
-               await this.readNahjAlbalaghaContent(1, indexing[index].id!,indexing[index].number!,555);
-                
+            //  const indexing = await this.getAlkafeeIndexing(this.getNahjAlbahlaghPageUrl(1),1, albalaghaBookId);
+
+            kdp("migrationBalagha========kutba", 'y');
+            for (let index = 1; index < 242; index++) {
+
+
+                await this.readNahjAlbalaghaContent(this.getNahjAlbahlaghUrls(index)[0], index);
+
             }
+            for (let index = 1; index < 80; index++) {
+
+
+                await this.readNahjAlbalaghaContent(this.getNahjAlbahlaghUrls(index)[1], index);
+
+            }
+
+
+
+            await this.readNahjAlbalaghaHikam(this.getNahjAlbahlaghUrls(0)[2], 322);
+
+
             const data = await this.getDataOfBook(alKafeeBookId);
 
-            console.log("finish migrationAlkafee");
+            kdp("migrationBalagha========", 'g');
 
             return response.status(200).json({ "status": true, "message": "migrationAlkafee  created successfully", data: data });
 
@@ -221,63 +236,85 @@ return catArry; }
 
     }
 
-  
 
-    public async readNahjAlbalaghaContent(juzu: number, bookId: number, startPage: number, endPage: number) {
-        let novelistIds: any[] = [];
-        let text = "";
-        for (let page = startPage; page < endPage; page++) {
-            const url = this.getNahjAlbahlaghPageUrl(page);
+
+    public async readNahjAlbalaghaContent(url: string, page: number) {
+
+
+
+        kdp("readNahjAlbalaghaContent==" + url, 'm');
+        try {
+
+
+
+
 
             const { data } = await axios.get(url);
             const $ = cheerio.load(data);
 
 
-
-            const elements = $('div.text').contents(); // Get all the contents of the div (text nodes + elements)
-            const footer = $('div.footnote').text();
-            for (const element in elements) {
-                if (elements[element].type === 'text') {
-                    
-                    if ($(elements[element]).text().slice(-1)=='.') {
-                        text += " " + $(elements[element]).text().trim();
-                        await this.createBookItemContent(text, false, bookId, page, juzu, novelistIds);
-                        novelistIds = [];
-                        text = "";
-                        continue;
-
-                    }
-                    text += " " + $(elements[element]).text().trim();
-
-                }
-                else if (elements[element].type === 'tag' && elements[element].tagName === 'span') {
-                    // This is a span element
-                    text += " " +$(elements[element]).text().trim();
-                    const id = instance.getId($, elements[element]);
-
-                    const novelist = await this.createNoveler($(elements[element]).text().trim(), id);
-                    if (novelist) {
-                        novelistIds.push(novelist);
-
-                    }
+            const title = $('h1.elementor-heading-title').text();
+            const cat = await this.createCategory({ book_item_id: albalaghaBookId, index_name: title, type: BookType.INDEX });
 
 
-                }
+
+
+            const section = $(".dce-acf-repeater-grid").children().toArray(); // Get all the contents of the div (text nodes + elements)
+
+            for (const element in section) {
+                kdp("readNahjAlbalaghaContent==" + element, 'r');
+                const title = $(section[element]).find("div.dynamic-content-for-elementor-acf").text(); // Get all the contents of the div (text nodes + elements)
+                const paregraph = $(section[element]).find("p").text(); // Get all the contents of the div (text nodes + elements)
+                
+               
+                await this.createBookItemContent(paregraph, "", false, cat!.id, page, 0, [],BookType.CONTENT,title);
+
+
             }
-        //    if (footer.length > 0) {
-        //     await this.createBookItemContent(footer, false, bookId, page, juzu, [],BookType.FOOTER);
-           
-        //    }
+
+       
+
+        }
+        catch (e) {
+            kdp("readNahjAlbalaghaContent==87234" + e, 'r');
+            await this.readNahjAlbalaghaContent(url, page);
+        }
+    }
+    public async readNahjAlbalaghaHikam(url: string, page: number) {
+
+        const cat = await this.createCategory({ book_item_id: albalaghaBookId, index_name: "حكم نهج البلاغة", type: BookType.INDEX });
+
+
+        kdp("readNahjAlbalaghaHikam==" + url, 'm');
+        try {
+
+            const { data } = await axios.get(url);
+            const $ = cheerio.load(data);
+            const hikam = $('span.dynamic-content-for-elementor-acf').toArray(); // Get all the contents of the div (text nodes + elements)
+
+            for (const element in hikam) {
+                const content = $(hikam[element]).text(); // Get all the contents of the div (text nodes + elements)
+
+
+                kdp("readNahjAlbalaghaContent==" + content, 'g');
+
+                await this.createBookItemContent(content, "", false, cat!.id, page, 0, []);
+
+
+            }
 
 
 
         }
-
+        catch (e) {
+            kdp("readNahjAlbalaghaContent==87234" + e, 'r');
+            await this.readNahjAlbalaghaContent(url, page);
+        }
     }
 
     public async getMainPages(url: string) {
 
-      const { data } = await axios.get(url);
+        const { data } = await axios.get(url);
         const $ = cheerio.load(data);
 
 
@@ -320,7 +357,7 @@ return catArry; }
             return -1;
         }
     }
-  
+
 
     public parseText(textContent: string): boolean {
 
@@ -361,35 +398,39 @@ return catArry; }
 
     }
     public async getDataOfBook(id: number) {
-       
-    
+
+
         try {
-        
-            let respoceData : any;
-           
-           
+
+            let respoceData: any;
+
+
 
             const resultQuery = await prisma.bookItems.findFirst({
                 where: { parent: null, id: id },
 
                 include: {
-                    children: { 
-                        
+                    children: {
+
                         orderBy: { id: 'asc' },
                         include: {
-                        noverlers: true,
-                        children: {
-                            orderBy: { id: 'asc' },
-                            include:{
-                                children: {
-                                    orderBy: { id: 'asc' },
-                                    include: { noverlers: true }
-                                },
-                                
-                                noverlers:true}} } },
+                            noverlers: true,
+                            children: {
+                                orderBy: { id: 'asc' },
+                                include: {
+                                    children: {
+                                        orderBy: { id: 'asc' },
+                                        include: { noverlers: true }
+                                    },
+
+                                    noverlers: true
+                                }
+                            }
+                        }
+                    },
                     noverlers: true
-                   
-                  
+
+
                 }
             });
             respoceData = resultQuery;
@@ -410,33 +451,33 @@ return catArry; }
             //         }
 
             //         bookItems.noveler_ids = null;
-                
+
             //     }
             // }
 
 
-        //     for (const bookItems of respoceData) {
-        //         for (const subcat of bookItems.sub_categories) {
-        //             for (const bookItem of  subcat.book_item) {
-        //             if (bookItem.noveler_ids.length > 0) {
-        //                 const novelist = await prisma.novelist.findMany({
-        //                     where: {
-        //                         id: { in: bookItem.noveler_ids },
-        //                     },
-        //                     select: { id: true, name: true, rate: true, birth_day: true, death_day: true }
-        //                 })
-        //                 if (novelist) {
-        //                     bookItem.noveler_ids = novelist
-        //                     continue;
-        //                 }
+            //     for (const bookItems of respoceData) {
+            //         for (const subcat of bookItems.sub_categories) {
+            //             for (const bookItem of  subcat.book_item) {
+            //             if (bookItem.noveler_ids.length > 0) {
+            //                 const novelist = await prisma.novelist.findMany({
+            //                     where: {
+            //                         id: { in: bookItem.noveler_ids },
+            //                     },
+            //                     select: { id: true, name: true, rate: true, birth_day: true, death_day: true }
+            //                 })
+            //                 if (novelist) {
+            //                     bookItem.noveler_ids = novelist
+            //                     continue;
+            //                 }
 
-        //             }
+            //             }
 
-        //             bookItems.noveler_ids = null;
-                
-        //         }
-        //     }
-        // }
+            //             bookItems.noveler_ids = null;
+
+            //         }
+            //     }
+            // }
 
 
 
@@ -453,16 +494,16 @@ return catArry; }
             // if (!bookCat) {
             //     return response.status(400).json({ "status": false, "message": "Alkafee fetched error", "error": "data not found" });
             // }
-           
+
             // respoceData = data;
-           
+
             // for (const item in respoceData!.bookItems) {
-               
+
             //  const element = respoceData?.bookItems[item];
-              
+
             //     if (element.novelerIds.length > 0) {
 
-                  
+
             //         const novelist = await prisma.novelist.findMany({
             //             where: {
             //                 id: { in: element.novelerIds },
@@ -479,74 +520,74 @@ return catArry; }
 
             //     element.novelerIds = null;
             //     respoceData.bookItems[item] = element;
-               
+
 
             // }
 
-        //     const result = await prisma.$queryRaw`
-        //     SELECT "public"."Noveler".* 
-        //     FROM "public"."BookItems"
-        //     JOIN "public"."Noveler" 
-        //       ON "public"."Noveler"."id" = ANY("public"."BookItems"."noveler_ids")
-        //     WHERE "public"."BookItems"."id" = 284;
-        //   `;
-        //    const result = await prisma.$queryRaw`
-        //         SELECT *  FROM "public"."Category"  cat WHERE cat.book_id = ${id} AND cat.parent_id IS NULL
-         
-        //    JOIN "public"."BookItems" book_item
-        //      ON book_item.category_id = cat.id;`;
-//      const result = await prisma.$queryRaw`
-//       SELECT 
-//       cat.name AS category_name, 
-//       cat.id AS category_id, 
-//       book_item.id AS book_item_id , 
-//       book_item.text AS book_item_text, 
-//       book_item.page AS book_item_page,
-//        book_item.juzu AS book_item_juzu ,
-//        sub_categories.name AS sub_category_name,
-//        sub_categories.id AS sub_category_id
-//   FROM "public"."Category" AS cat
-//   LEFT JOIN "public"."BookItems" AS book_item
-//   ON book_item.category_id = cat.id
+            //     const result = await prisma.$queryRaw`
+            //     SELECT "public"."Noveler".* 
+            //     FROM "public"."BookItems"
+            //     JOIN "public"."Noveler" 
+            //       ON "public"."Noveler"."id" = ANY("public"."BookItems"."noveler_ids")
+            //     WHERE "public"."BookItems"."id" = 284;
+            //   `;
+            //    const result = await prisma.$queryRaw`
+            //         SELECT *  FROM "public"."Category"  cat WHERE cat.book_id = ${id} AND cat.parent_id IS NULL
 
-//   LEFT JOIN "public"."Category" AS sub_categories
-//   ON  sub_categories.parent_id = cat.id  
+            //    JOIN "public"."BookItems" book_item
+            //      ON book_item.category_id = cat.id;`;
+            //      const result = await prisma.$queryRaw`
+            //       SELECT 
+            //       cat.name AS category_name, 
+            //       cat.id AS category_id, 
+            //       book_item.id AS book_item_id , 
+            //       book_item.text AS book_item_text, 
+            //       book_item.page AS book_item_page,
+            //        book_item.juzu AS book_item_juzu ,
+            //        sub_categories.name AS sub_category_name,
+            //        sub_categories.id AS sub_category_id
+            //   FROM "public"."Category" AS cat
+            //   LEFT JOIN "public"."BookItems" AS book_item
+            //   ON book_item.category_id = cat.id
 
-//   WHERE cat.book_id = ${id} AND cat.parent_id IS NULL;
-//    `;
+            //   LEFT JOIN "public"."Category" AS sub_categories
+            //   ON  sub_categories.parent_id = cat.id  
+
+            //   WHERE cat.book_id = ${id} AND cat.parent_id IS NULL;
+            //    `;
 
 
             return { "status": true, "message": "adwhaa  fetched successfully", "data": respoceData };
 
         } catch (error) {
-            kdp("error=="+error, 'r');
+            kdp("error==" + error, 'r');
             return { "status": false, "message": "book fetched error", "error": error };
 
         }
     }
 
     public async deleteBook(id: number) {
-       
-    
+
+
         try {
-        
-            let respoceData : any;
-           
-           
+
+            let respoceData: any;
+
+
 
             const resultQuery = await prisma.bookItems.deleteMany({ where: { book_item_id: id }, });
-           
-            
 
-            return { "status": true, "message": "  deleteBook successfully"};
+
+
+            return { "status": true, "message": "  deleteBook successfully" };
 
         } catch (error) {
-            kdp("error=="+error, 'r');
+            kdp("error==" + error, 'r');
             return { "status": false, "message": "deleteBook  error", "error": error };
 
         }
     }
-    
+
     public async readAdwaaContent() {
         const host = "https://www.alsadrain.com/sader2/books/adhwa/1.htm";
 
@@ -555,21 +596,21 @@ return catArry; }
         for (let index = 1; index < 5; index++) {
             const url = host.replace("1", index.toString());
 
-            const response = await axios.get(url,{
-                responseType: 'arraybuffer',  
+            const response = await axios.get(url, {
+                responseType: 'arraybuffer',
                 headers: {
-                    
+
                     'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
-                'Accept-Encoding': 'gzip, deflate, br, zstd',
-                'Accept-Language': 'en-US,en;q=0.9',
-            
-                'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36',
-            
-                     }
+                    'Accept-Encoding': 'gzip, deflate, br, zstd',
+                    'Accept-Language': 'en-US,en;q=0.9',
+
+                    'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36',
+
+                }
             });
-           
+
             const decodedData = iconv.decode(Buffer.from(response.data), 'windows-1256');
-           
+
             const $ = cheerio.load(decodedData);
 
 
@@ -604,26 +645,55 @@ return catArry; }
         for (const index in paregraph) {
             if (paregraph[index].type != 'text') { continue; }
             const item = $(paregraph[index]).text().trim();
-            if (/^[_¬ـ\s]+$/.test(item)&& item.length>5) {
+            if (/^[_¬ـ\s]+$/.test(item) && item.length > 5) {
 
 
-                pages.push(await this.createBookItemContent(text, false, adwaBookId, page, -1, []));
+                pages.push(await this.createBookItemContent(text, "", false, adwaBookId, page, -1, []));
 
                 page++;
                 text = "";
                 continue
             }
 
-            text += " "+$(paregraph[index]).text().trim();
+            text += " " + $(paregraph[index]).text().trim();
 
         }
         if (text.length > 0) {
 
-            pages.push(await this.createBookItemContent(text, false, adwaBookId, page, -1, []));
+            pages.push(await this.createBookItemContent(text, "", false, adwaBookId, page, -1, []));
 
         }
         return pages;
 
     }
+
+public async getAllBooks(req: any, response: any) {
+
+        try {
+
+            let respoceData: any;
+
+            const resultQuery = await prisma.bookItems.findMany({ where:{book_type:BookType.BOOK,book_item_id:null} } );
+            respoceData = resultQuery;
+
+            
+             return response.status(200).json( { "status": true, "message": "books fetched successfully", "data": respoceData });
+        } catch (error) {
+            kdp("error==" + error, 'r');
+            return response.status(404).json( { "status": false, "message": "books fetched error", "error": error });
+
+        }
+    }
+
+  public toArabicDigits(number: string): string {
+        var id = ['٠','١','٢','٣','٤','٥','٦','٧','٨','٩'];
+        return number.replace(/[0-9]/g, function(w){
+          return id[+w];
+         });
+        };
+
 }
+
+  
+
 export default BooksService;

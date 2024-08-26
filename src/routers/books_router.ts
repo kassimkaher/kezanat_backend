@@ -24,6 +24,7 @@ alkafeeRouter.route("/:id")
 .get(booksController.getBookById)
 .delete(booksController.deleteBook)
 
-
+alkafeeRouter.route("/books")
+.get(booksController.getAllBooks)
 
 export default alkafeeRouter;

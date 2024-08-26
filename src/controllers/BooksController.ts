@@ -52,7 +52,11 @@ class BookController {
     }
    
 
-    
+    public async getAllBooks(req: any, response: any) {
+
+        return await booksService.getAllBooks(req, response);
+
+    }
 
 
 

@@ -3,7 +3,7 @@
 import { PrismaClient, Sajda } from '@prisma/client';
 
 import axios from 'axios';
-import { convertArabicToEnglishNumbers } from '../utils/functions';
+import { convertArabicToEnglishNumbers, kdp } from '../utils/functions';
 
 const cheerio = require('cheerio');
 
@@ -47,9 +47,10 @@ class QuranService {
         return dataS;
     }
     public async createQuran(req: any, response: any) {
-       
+
         let juzuObj = { n: 1 };
         let suraData = {
+            id: -1,
             sura_name: "",
             sura_number: 1,
             count: 0
@@ -69,7 +70,7 @@ class QuranService {
         }
 
     }
-    public async readQuranPage(page: number, juzuObj: {n:number}, suraData: any) {
+    public async readQuranPage(page: number, juzuObj: { n: number }, suraData: any) {
 
 
 
@@ -90,30 +91,33 @@ class QuranService {
             for (const element of elements) {
                 if (element.name === 'div') {
 
-                    if ($(element).attr('id') !== 'juz') {
+                    if ($(element).attr('id') != 'juz' && $(element).text().includes("جزء")) {
+                        kdp(url, 'm');
                         juzuObj.n++;
                         continue;
                     }
                     const title = $(element).find('#juz > a').text();
-                    if (suraData.sura_name.length > 0 && suraData.sura_name !== title) {
+                    if (title != null && title.length > 1 && suraData.sura_name != title && (!title.includes("متابعة القراءة من"))) {
 
-
+                        kdp("oldtitle="+suraData.title+"title==" + title + "\n" +"page="+ page, 'm');
                         suraData['sura_number'] = suraData.sura_number + 1;
+                        suraData['sura_name'] = title;
                     }
-                    suraData['sura_name'] = title;
 
+
+
+                    const suraModelID = await this.insertSuraInfo(suraData);
+
+
+
+                    suraData.id = suraModelID.id;
 
                     continue;
 
                 }
 
 
-                const suraModelID = await this.insertSuraInfo(suraData);
 
-                if (suraModelID == -1) {
-
-                    continue;
-                }
 
                 const ayaElement = $(element).find('a');
                 let number = 0;
@@ -129,7 +133,7 @@ class QuranService {
                     : ayaElement.text();
                 const ayaModel = await prisma.ayah.create({
                     data: {
-                        sura_id: suraModelID.id,
+                        sura_id: suraData.id,
                         text: text,
                         number: number,
                         page: page,
@@ -154,17 +158,27 @@ class QuranService {
 
 
         try {
+            const sura = await prisma.sura.findFirst({ where: { OR: [{ sura_name: suraData.sura_name }, { sura_number: suraData.sura_number }] } });
 
 
+            if (sura) {
+                await prisma.sura.update({
+                    where: { id: sura.id },
+                    data: {
+                        count: sura.count + 1
+                    }
+                });
+                return sura;
 
-            return await prisma.sura.upsert({
-                where: { sura_number: suraData.sura_number },
-                update: {
+            }
+            return await prisma.sura.create({
+                // where: { OR: [{ sura_name: suraData.sura_name }, { sura_number: suraData.sura_number }] },
+                // update: {
 
 
-                    count: { increment: 1 }
-                },
-                create: {
+                //     count: { increment: 1 }
+                // },
+                data: {
                     sura_name: suraData.sura_name,
                     sura_number: suraData.sura_number,
                     count: 1
@@ -217,7 +231,7 @@ class QuranService {
     public async getQuran(req: any, response: any) {
         try {
 
-            const suras = await prisma.ayah.findMany({ include: { sura: true },orderBy: { id: 'asc' } });
+            const suras = await prisma.ayah.findMany({ include: { sura: true }, orderBy: { id: 'asc' } });
 
 
             return response.status(200).json({ "status": true, "message": "Quran fetched successfully", "data": suras });
@@ -249,7 +263,7 @@ class QuranService {
         suraData['count'] = list.find('li').length;
 
         try {
-    
+
             let number = 0;
             $(sura).find('ul').children().each(async (num: any, element: any) => {
 
