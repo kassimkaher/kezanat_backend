@@ -20,11 +20,11 @@ alkafeeRouter.route("/balagh")
 
 .post(booksController.migrationBalagha);
 
-alkafeeRouter.route("/:id")
+alkafeeRouter.route("/one/:id")
 .get(booksController.getBookById)
 .delete(booksController.deleteBook)
 
-alkafeeRouter.route("/books")
+alkafeeRouter.route("/all")
 .get(booksController.getAllBooks)
 
 export default alkafeeRouter;
