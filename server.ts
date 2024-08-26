@@ -12,7 +12,11 @@ const app = express();
 app.use(express.json());  // to parse application/json
 app.use(express.urlencoded({ extended: true }));  // to parse application/x-www-form-urlencoded
 
-
+app.get('/', (req, res) => {
+  return res.send(  '<h1> Welcome to Alkafee API </h1>');
+  
+});
+   
 
 
 const port = process.env.PORT || 3000;
