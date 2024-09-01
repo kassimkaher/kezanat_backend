@@ -4,6 +4,7 @@
 import { PrismaClient, UserRoles } from "@prisma/client";
 import jwt, { JwtPayload } from "jsonwebtoken";
 import { errorResponse } from "../../interfaces/ResponseInterFace";
+import { kdp } from "../../utils/functions";
 const prisma = new PrismaClient()
 export async function checkAuth(req: any, response: any, next: any) {
 
@@ -15,15 +16,17 @@ export async function checkAuth(req: any, response: any, next: any) {
   }
 
   try {
+
     const user = jwt.verify(token, process.env.TOKEN_KEY!) as JwtPayload
+   
     req.user_id = user.id;
     req.role_id = user.role_id;
-    const code = user.code;
+   
 
     const isFound = await prisma.token.findMany({
       where: {
         user_id: user.id,
-        code: code
+      
       },
       orderBy: {
         id: 'desc',
@@ -40,6 +43,7 @@ export async function checkAuth(req: any, response: any, next: any) {
 
     return next();
   } catch (error) {
+   // console.log(error)
     return response.status(401).json({ "status": false, "message": error, });
   }
 
@@ -94,7 +98,7 @@ export async function isAdmin(req: any, response: any, next: any) {
 
     return next()
   }
-
+kdp(user1?.role_id??"00",'r');
 
 
   return response.status(401).json({ "status": false, "message": "user not permition", });

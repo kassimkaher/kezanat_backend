@@ -4,13 +4,14 @@ import { PrismaClient, UserRoles } from '@prisma/client';
 import bcrypt from "bcrypt";
 import jwt, { JwtPayload } from "jsonwebtoken";
 import otpGenerator from 'otp-generator';
-import { errorResponse, sucessResponse } from '../interfaces/ResponseInterFace';
+import { errorResponse, needVerifiyResponse, sucessResponse } from '../interfaces/ResponseInterFace';
 
 
 const prisma = new PrismaClient()
 
 
 import MailService from '../services/MailService';
+import { kdp } from '../utils/functions';
 
 const mailService = new MailService();
 
@@ -42,7 +43,7 @@ class AuthService {
                 gander: "gander",
                 onesignal_id: null,
                 role_id: UserRoles.ADMIN,
-                code: '123456',
+                code: '12345678',
                 verified: true,
                 verified_date: new Date(),
                 enable: true,
@@ -319,7 +320,7 @@ class AuthService {
 
             // Create token
             const token = jwt.sign(
-                { id: user!.id, role_id: user!.role_id, code: newCode },
+                { id: user!.id, role_id: user!.role_id },
                 process.env.TOKEN_KEY!,
                 {
                     expiresIn: "1d",
@@ -334,18 +335,23 @@ class AuthService {
 
            
             if (!user?.verified) {
-                return response.status(400).send(errorResponse("user_must_verifi", "user_must_verifi"));
+                kdp(""+process.env.TOKEN_KEY,'m')
+                mailService.sendCode(user.code,user.email);
+                return response.status(402).send(needVerifiyResponse( token));
 
             }
             if (user.role_id == UserRoles.USER||user.role_id == UserRoles.ADMIN) {
-
-                return response.send(sucessResponse("sucess", user));
+                let us = exclude(user,"password")
+                us["token"]= token;
+                return response.send(sucessResponse("sucess", us));
             }
             if (user.role_id == UserRoles.COMPANY && user.enable) {
+                let us = exclude(user,"password")
+                us["token"]= token;
 
-                return response.send(sucessResponse("sucess", user));
+                return response.send(sucessResponse("sucess", us));
             } else {
-                return response.status(400).send(errorResponse("complete company info", "user not enable"));
+                return response.status(400).send(errorResponse("complete company info", "user not enable",));
 
             }
 

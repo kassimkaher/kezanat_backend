@@ -9,6 +9,7 @@
     "build": "npx tsc",
     "dev": "nodemon server.ts",
     "start": " npx nodemon server.ts "
+   
   },
   "keywords": [],
   "author": "",
@@ -46,6 +47,7 @@
     "@types/nodemailer": "^6.4.15",
     "@types/otp-generator": "^4.0.0",
     "@types/pg": "^8.11.6",
+    "concurrently": "^8.2.2",
     "nodemon": "^3.1.4",
     "prisma": "^5.17.0",
     "ts-node": "^10.9.2",

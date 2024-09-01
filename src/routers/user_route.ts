@@ -11,10 +11,14 @@ const userRouter = express();
 
 userRouter.route("/user")
 .get(checkAuth,isVerify,auth.profile)
-.post(auth.createUser);
+
+.put( checkAuth,auth.verifyUser)
+.post(auth.createUser)
+.patch( checkAuth,auth.reSendCode);
 userRouter.route("/login")
 
 .post(auth.login);
+
 
 
 export default userRouter;

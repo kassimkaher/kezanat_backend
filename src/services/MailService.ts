@@ -12,8 +12,8 @@ class MailService {
             port: 465,
             secure: true, // true for 465, false for other ports
             auth: {
-              user: 'alqasim.engineer@gmail.com', // generated ethereal user
-              pass: 'nlezwzqnpbukkgxl', // generated ethereal password
+              user: 'kezanat.alsama@gmail.com', // generated ethereal user
+              pass: 'uiya ijdk vbcz prnb', // generated ethereal password
             },
           });
            // send mail with defined transport object

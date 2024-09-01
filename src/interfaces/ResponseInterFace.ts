@@ -16,10 +16,19 @@ export  const errorResponse = (message: string, error: any):IResponse => {
         error: error
     }
 }
+export  const needVerifiyResponse = (token: any):IResponse => {
+    return {
+        status: false,
+        message: "user_must_verifi",
+        data: {token:token},
+        error: null,
+    }
+}
 interface IResponse {
     status: boolean;
     message: string;
     data: any;
     error: any;
 }
-export { IResponse };
+export { IResponse }
+
