@@ -15,7 +15,7 @@ app.get('/', (req, res) => {
 });
    
 app.get('/.well-known/apple-app-site-association', (req, res) => {
-  return res.sendFile("./asstes/apple-app-site-association");
+  return res.sendFile("./src/asstes/apple-app-site-association");
 });
    
 
