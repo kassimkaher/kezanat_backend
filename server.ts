@@ -15,6 +15,10 @@ app.get('/', (req, res) => {
   return res.sendFile("/var/www/kezanat_front/lib/web/index.html");
 });
    
+app.get('/.well-known/apple-app-site-association', (req, res) => {
+  return res.sendFile("./asstes/apple-app-site-association");
+});
+   
 
 
 const port = process.env.PORT || 3000;
