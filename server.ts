@@ -1,4 +1,4 @@
-
+p9U2RzrUldmr9pfD5IR4
 
 import dotenv from "dotenv";
 import express from "express";
@@ -12,8 +12,7 @@ app.use(express.json());  // to parse application/json
 app.use(express.urlencoded({ extended: true }));  // to parse application/x-www-form-urlencoded
 
 app.get('/', (req, res) => {
-  return res.sendFile("/projects/kezanat_backend/frontend/public/index.html");
-  
+  return res.sendFile("/var/www/kezanat_front/lib/web/index.html");
 });
    
 
