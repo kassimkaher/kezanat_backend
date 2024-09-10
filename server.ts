@@ -1,4 +1,3 @@
-p9U2RzrUldmr9pfD5IR4
 
 import dotenv from "dotenv";
 import express from "express";
