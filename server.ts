@@ -1,8 +1,8 @@
 
 import dotenv from "dotenv";
 import express from "express";
-
 import router from './src/routers/router';
+const path = require('path');
 dotenv.config();
 
 const app = express();
@@ -15,9 +15,10 @@ app.get('/', (req, res) => {
 });
    
 app.get('/.well-known/apple-app-site-association', (req, res) => {
-  return res.sendFile("./src/asstes/apple-app-site-association");
+  // Use path.join to create an absolute path
+  const filePath = path.join(__dirname, 'src', 'assets', 'apple-app-site-association.json');
+  return res.sendFile(filePath);
 });
-   
 
 
 const port = process.env.PORT || 3000;
